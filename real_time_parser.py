@@ -20,8 +20,8 @@ class Bin_Parser:
     
     iter_pos = 0
     iter_time = 0
-    test_log_markpos = open("test_output_markpos.log", "w")
-    test_log_marktime = open("test_output_marktime.log", "w")
+    # test_log_markpos = open("test_output_markpos.log", "w")
+    # test_log_marktime = open("test_output_marktime.log", "w")
 
     map_command = {"GPGGA" : 0}
     GPS_QUAL_CODE = {
@@ -52,6 +52,7 @@ class Bin_Parser:
         self.end_ascii_command = b'\n'
         self.buff = b""
         self.iter = 0
+        self.count_marks = 0
    
     def nmea_convert(self, lat_, type):
         intg_count = lat_.find('.') - 2
@@ -97,7 +98,7 @@ class Bin_Parser:
             print("MARKPOS_____MARKPOS_____MARKPOS___MARKPOS_____MARKPOS_____MARKPOS___")
             body = cmd[36 : 36 + 24]
             dc   = struct.unpack('<3d', body)
-            self.test_log_markpos.writelines(f"{self.iter_pos}, {dc}")
+            # self.test_log_markpos.writelines(f"{self.iter_pos}, {dc}")
             
             # sol_stat, pos_type = struct.unpack('<2I', self.f.read(8))
             # word = self.f.read(24)
@@ -120,11 +121,11 @@ class Bin_Parser:
         
         elif (self.id_to_offset[str(id)] == 'MARKTIME'):
             self.iter_time += 1
-
+            self.count_marks += 1
             print("MARKTIME_____MARKTIME_____MARKTIME___MARKTIME_____MARKTIME_____MARKTIME___")
             body = cmd[28 : 28 + 36]
             word   = struct.unpack('<l4d', body)
-            self.test_log_markpos.writelines(f"{self.iter_time}, {word}")
+            # self.test_log_markpos.writelines(f"{self.iter_time}, {word}")
 
             print(word)
 
@@ -197,14 +198,18 @@ class Bin_Parser:
             self.cache_mark.append(cmd)
 
         elif cmd["name"] == "MARKTIMEA":
+            self.count_marks += 1
+            
             if len(self.cache_mark) != 0:
                 mark_pos = self.cache_mark.pop()
                 joined = cmd | mark_pos 
                 joined["name"] = "FULL_CMD"
+                joined["total_marks"] =  self.count_marks
                 return joined
             else:
                 return cmd
         else:
+            cmd["total_marks"] = self.count_marks
             return cmd
              
         

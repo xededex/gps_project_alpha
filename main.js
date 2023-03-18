@@ -242,9 +242,46 @@ class TrashView extends BaseTableView{
 
 
 class ManagerViews{
-	addToTable({data : cmd}){
 
 
+	activePage(cmd) {
+		this.quick_info.removeClass(this.alertFalse);
+		this.quick_info.addClass(this.alertOk);
+
+		var text_msg = "msg" in cmd ? cmd["msg"] : "COM порт инициализирован, Ожидание данных...";
+		this.quick_info.text(cmd["msg"])
+		this.page.show();
+		this.quick_info.text(text_msg);
+		this.initComPORT = true;
+	}
+
+	parseCmd({data : cmd}) {
+		cmd = JSON.parse(cmd);
+		if (cmd["type"] = "err" && cmd["name"] == "init_err") {
+			this.quick_info.removeClass(this.alertOk);
+			this.quick_info.addClass(this.alertFalse);
+			this.quick_info.text(cmd["msg"]);
+			this.page.hide("slow");
+
+		} else {
+			if (!this.initComPORT) {
+				this.activePage(cmd);
+			} 
+
+		}
+
+
+		// else if (cmd["ok"] = "err" && cmd["name"] == "init_ok") {
+			
+		// }
+		
+
+
+
+	}
+	
+	addToTable({data : cmd}) {
+		
 		console.log(cmd);
 		cmd = JSON.parse(cmd);
 		if (cmd["name"] == "RANGECMP") {
@@ -253,7 +290,7 @@ class ManagerViews{
 		else if (cmd["name"] == "$GPGGA") {
 			cmd["utc"] = cmd["utc"].slice(0, 2) + ":" + cmd["utc"].slice(2, 4) + ":" + cmd["utc"].slice(4, 6);
 			this.gpgga_view.addToTable(cmd);	
-				$("#quick_info").text(`Время: ${cmd["utc"]}, Связь : ${cmd["GPS qual"]}, Спутники : ${cmd["sats"]}`);
+				$("#quick_info").text(`Время: ${cmd["utc"]}, Связь : ${cmd["GPS qual"]}, Спутники : ${cmd["sats"]}, Кол-во сделанных меток : ${cmd["total_marks"]}`);
 		}
 		// else if ((cmd["name"] == "MARKPOS")) {
 		// 	this.marktime_view.addToTable(cmd);
@@ -267,14 +304,12 @@ class ManagerViews{
 	}
 	constructor(){
 		// this.gpgga_view    = new GpggaTableView();
-
+		this.initComPORT = false;
+		this.page = $("#wrapp_com_port_info");
+		this.alertOk = "alert-success";
+		this.alertFalse = "alert-warning";
+		this.quick_info = $("#quick_info");
 		this.trash_view    = new TrashView();
-		// // <th> ${this.iter} </th>
-		// 		<td> ${cmd["utc"].slice(0, 2) + ":" + cmd["utc"].slice(2, 4) + ":" + cmd["utc"].slice(4, 6)}</td>
-		// 		<td> ${cmd["lat"]} </td>
-		// 		<td> ${cmd["lon"]} </td>
-		// 		<td> ${cmd["GPS qual"]} </td>
-		// 		<td> ${cmd["sats"]} </td>
 		this.marktime_view = new BaseTableView("marktime", ["num", "lat", "lon", "hgt", "utc"]);
 		this.gpgga_view = new BaseTableView("gpgga", ["num", "utc", "lat", "lon", "GPS qual", "sats"]);
 
@@ -293,9 +328,9 @@ $(document).ready(function () {
 	
 
 	var socket = new WebSocket("ws://localhost:8080/ws");
-	global_view = undefined;
+	global_view = new ManagerViews();
 	socket.onopen = function () {
-		global_view = new ManagerViews();
+		// global_view = new ManagerViews();
 
 		console.log("connected");
 		
@@ -303,7 +338,7 @@ $(document).ready(function () {
 
 	socket.onmessage = function (message) {
 		global_view.addToTable(message);
-	
+		global_view.parseCmd(message);
 	};
 
 	socket.onclose = function () {
