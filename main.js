@@ -1,22 +1,74 @@
 class BaseTableView{
-	asView(){
 
-	}
-	createTable() {
-		console.log("create_trasg");
-	
-	}
+
 	addToTable(cmd) {
 		this.iter += 1;
-		this.received.append(JSON.stringify(cmd));
-		this.received.append($('<br/>'));
+		cmd["num"] = this.iter;
+
+		// cmd[0] = this.iter;
+		
+
+		// <th> ${this.iter} </th>
+		// 	<td> ${cmd["lat"]} </td>
+		// 	<td> ${cmd["lon"]} </td>
+		// 	<td> ${cmd["hgt"]} </td>
+		// 	<td> ${cmd["utc"]} </td>
+
+
+
+		this.t_body.prepend(`
+		<tr>
+
+			${this.rows.reduce((acc, curr) => {
+				return acc + `<td>${cmd[curr]}</td>`
+			}, '')}
+
+		</tr>
+		`);
 	}
 
-	constructor() {
+	createTable(id_wrapp, rows) {
+		$("#" + id_wrapp).append(`
+		<div class="panel-body table-responsive">
+
+			<table id="${id_wrapp}_table" class="table table-bordered table-striped">
+			  <thead>
+				<tr>
+					${rows.reduce((acc, curr) => {
+						return acc + `<th scope="col">${curr}</th>`
+					}, '')}
+				</tr>
+
+		
+				
+			  </thead>
+				<tbody class="overflow-scroll">
+				</tbody>
+
+			</table>
+		</div>
+		<button id="${id_wrapp}_clear">Clear</button>
+
+		`
+		);
+		this.rows = rows;
+		this.t_body = $('#' + id_wrapp + '_table' + ' tbody');
+		this.clear_btn = $("#" + id_wrapp + "_" + "clear");
+		this.clear_btn.click((el) => {
+			this.clearTable();
+		});		
+		
+
+
+	}	
+
+
+	constructor(id_wrapp, rows) {
 		this.received = null;
 		this.iter = 0;
 		this.t_body = null;
 		this.clear_btn = null;
+		this.createTable(id_wrapp, rows);
 	}
 
 
@@ -199,7 +251,9 @@ class ManagerViews{
 			this.trash_view.addToTable(cmd);
 		}
 		else if (cmd["name"] == "$GPGGA") {
+			cmd["utc"] = cmd["utc"].slice(0, 2) + ":" + cmd["utc"].slice(2, 4) + ":" + cmd["utc"].slice(4, 6);
 			this.gpgga_view.addToTable(cmd);	
+				$("#quick_info").text(`Время: ${cmd["utc"]}, Связь : ${cmd["GPS qual"]}, Спутники : ${cmd["sats"]}`);
 		}
 		// else if ((cmd["name"] == "MARKPOS")) {
 		// 	this.marktime_view.addToTable(cmd);
@@ -212,10 +266,18 @@ class ManagerViews{
 
 	}
 	constructor(){
-		this.gpgga_view    = new GpggaTableView();
+		// this.gpgga_view    = new GpggaTableView();
 
 		this.trash_view    = new TrashView();
-		this.marktime_view = new MarktimeTableView("marktime", ["num", "lat", "lon", "hgt", "utc"]);
+		// // <th> ${this.iter} </th>
+		// 		<td> ${cmd["utc"].slice(0, 2) + ":" + cmd["utc"].slice(2, 4) + ":" + cmd["utc"].slice(4, 6)}</td>
+		// 		<td> ${cmd["lat"]} </td>
+		// 		<td> ${cmd["lon"]} </td>
+		// 		<td> ${cmd["GPS qual"]} </td>
+		// 		<td> ${cmd["sats"]} </td>
+		this.marktime_view = new BaseTableView("marktime", ["num", "lat", "lon", "hgt", "utc"]);
+		this.gpgga_view = new BaseTableView("gpgga", ["num", "utc", "lat", "lon", "GPS qual", "sats"]);
+
 		// this.markpos_view  = new MarkposTableView();
 
 	}
